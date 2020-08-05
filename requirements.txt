@@ -1,0 +1,8 @@
+PyJWT
+flask
+flask_sqlalchemy
+flask_httpauth
+passlib
+itsdangerous
+flask_mail
+pyodbc==4.0.28
