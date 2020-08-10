@@ -85,9 +85,19 @@ class Admin(db.Model):
     def get_roles(self):
         return self.role
 
+'''
+class patientDetails(db.Model):
+    __tablename__ = 'patientDetails'
+    id = db.Column(db.Integer,autoincrement = True,primary_key=True,nullable=False)
+    uniqueId = db.Column(db.String(200),nullable=False)
+    patientFirstName = db.Column(db.String(100),nullable = False)
+    patientLastName = db.Column(db.String(100),nullable=False)
+    details=db.Column(db.String(100),nullable=False)
 
-
-
+    def setUniqueId(self,DOB):
+        self.uniqueId = str(self.patientFirstName) + str(self.patientLastName) + str(DOB)
+        return True
+'''
 @basic_auth.verify_password
 def verify_password(username, password):
     user = Admin.query.filter_by(username = username).first()
@@ -309,7 +319,7 @@ def getall():
     return {"data":data}
 
 
-
+#______________________________________________________________ test routes start _______________________________________________________________________________#
 
 
 @app.route('/forms',methods=['POST','OPTIONS'])
@@ -358,7 +368,45 @@ def diagCode():
     
     return {"diagCode":diagCode}
 
+#______________________________________________________________ test routes end _______________________________________________________________________________#
 
 
+
+#______________________________________________________________ query routes start _______________________________________________________________________________#
+'''
+@app.route('/registerPatient', methods = ["POST"])
+def registerPatient():
+    formData = request.get_json(force=True)
+    #formData = request.json
+    print(formData)
+    PatientFirstName = formData["personalDetails"]["patientFirstName"]
+    patientLastName = formData["personalDetails"]["patientLastName"]
+    registerPatient = patientDetails(patientFirstName=PatientFirstName,patientLastName=patientLastName,details="Inserted into db")
+    registerPatient.setUniqueId(formData["personalDetails"]["dob"])
+
+    print(registerPatient.uniqueId)
+
+    #registerPatients.setUniqueId(formData['personalDetails']['dob'])
+    db.session.add(registerPatient)
+    db.session.commit()
+    #print(formData['personalDetails']['patientFirstName'])
+    return formData
+'''
+
+@app.route('/registerPatient', methods = ['POST'])
+def registerPatient():
+    formData = request.get_json(force=True)
+    print(formData)
+    patientFirstName = formData["personalDetails"]["patientFirstName"]
+    patientLastName = formData["personalDetails"]["patientLastName"]
+    dob = formData["personalDetails"]["dob"]
+    uniqueId = patientFirstName+patientLastName+dob
+    details = "mike"
+    sql = "INSERT INTO Pedsoncall.dbo.patientDetails VALUES('%s','%s','%s','%s')"%(uniqueId,patientLastName,patientLastName,details)
+    result = db.engine.execute(sql) 
+    db.session.commit()
+    return {'result':result}
+#______________________________________________________________ query routes end _______________________________________________________________________________#
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port="80",debug=True)
+    #app.run(debug=True)
