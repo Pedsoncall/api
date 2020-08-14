@@ -6,3 +6,4 @@ passlib
 itsdangerous
 flask_mail
 pyodbc==4.0.28
+Flask-Cors

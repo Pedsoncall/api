@@ -17,7 +17,7 @@ from flask_mail import Mail, Message
 
 from random import randint
 from flask import make_response
-
+from flask_cors import CORS
 
 basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth('Bearer')
@@ -27,6 +27,7 @@ multi_auth = MultiAuth(basic_auth, token_auth)
 
 
 app = Flask(__name__)
+CORS(app)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root1234@localhost/myappdb'
 
