@@ -13,8 +13,8 @@
 
 
 
-FROM python:3
-
+#FROM python:3
+FROM python:3.6-buster
 WORKDIR /app
 ADD requirements.txt .
 ADD core.py .
@@ -22,6 +22,7 @@ ADD core.py .
 #ENV https_proxy=http://[proxy]:[port]
 #ENV http_proxy=http://[proxy]:[port]
 # install FreeTDS and dependencies
+
 RUN apt-get update \
  && apt-get install unixodbc -y \
  && apt-get install unixodbc-dev -y \

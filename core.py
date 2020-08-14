@@ -40,8 +40,10 @@ app.config.update(
 	MAIL_SERVER='smtp.gmail.com',
 	MAIL_PORT=465,
 	MAIL_USE_SSL=True,
-	MAIL_USERNAME = 'techsupport@pedsoncall.net',
-	MAIL_PASSWORD = 'Welcome@Pedsoncall'
+    MAIL_USERNAME = 'dummyforpassreset@gmail.com',
+    MAIL_PASSWORD = 'dummy@123'
+	#MAIL_USERNAME = 'techsupport@pedsoncall.net',
+	#MAIL_PASSWORD = 'Welcome@Pedsoncall'
 	)
 mail = Mail(app)
 
@@ -77,7 +79,7 @@ class Admin(db.Model):
         encoded_jwt = jwt.encode({'username': self.username,'exp':time}, my_secret, algorithm='HS256')
         return encoded_jwt
 
-    def verify_auth_token(token):
+    def verify_auth_token(self,token):
         data=jwt.decode(token, my_secret, algorithms=['HS256'])
         user = User.query.get(data['username'])
         return user    
@@ -85,19 +87,19 @@ class Admin(db.Model):
     def get_roles(self):
         return self.role
 
-'''
+
 class patientDetails(db.Model):
     __tablename__ = 'patientDetails'
     id = db.Column(db.Integer,autoincrement = True,primary_key=True,nullable=False)
     uniqueId = db.Column(db.String(200),nullable=False)
     patientFirstName = db.Column(db.String(100),nullable = False)
     patientLastName = db.Column(db.String(100),nullable=False)
-    details=db.Column(db.String(100),nullable=False)
+    details=db.Column(db.String(80000),nullable=False)
 
     def setUniqueId(self,DOB):
         self.uniqueId = str(self.patientFirstName) + str(self.patientLastName) + str(DOB)
         return True
-'''
+
 @basic_auth.verify_password
 def verify_password(username, password):
     user = Admin.query.filter_by(username = username).first()
@@ -356,10 +358,10 @@ def diagCode():
     diagCode = []
     sql = 'SELECT [codeid],[description],[codegroup] FROM [Pedsoncall].[dbo].[DiagCode]'
     result = db.engine.execute(sql)
-    print('aft que')
+    print('aft que',flush=True)
     #print(result)
     for row in result:
-        #print(row)
+        #print(row,flush=True)
         temp={ }
         temp['codeid']=row[0]
         temp['description']=row[1]
@@ -396,17 +398,87 @@ def registerPatient():
 @app.route('/registerPatient', methods = ['POST'])
 def registerPatient():
     formData = request.get_json(force=True)
-    print(formData)
+    
     patientFirstName = formData["personalDetails"]["patientFirstName"]
     patientLastName = formData["personalDetails"]["patientLastName"]
     dob = formData["personalDetails"]["dob"]
+
+    
+    details = json.dumps(formData)
+
+    print(details,flush=True)
+   
+    print(len(details),flush=True)
+
+   
     uniqueId = patientFirstName+patientLastName+dob
-    details = "mike"
-    sql = "INSERT INTO Pedsoncall.dbo.patientDetails VALUES('%s','%s','%s','%s')"%(uniqueId,patientLastName,patientLastName,details)
+    
+    sql = "INSERT INTO patientDetails(uniqueId,patientFirstName,patientLastName,details) VALUES ('%s','%s','%s','%s');"%(uniqueId,patientFirstName,patientLastName,details)
     result = db.engine.execute(sql) 
     db.session.commit()
-    return {'result':result}
+    return details
+
+
+
+@app.route('/searchPatient',methods = ['POST'])
+def searchPatient():
+  
+    searchForm = request.get_json(force=True)
+    patientFirstName = searchForm["patientFirstName"]
+    patientLastName = searchForm["patientLastName"]
+    dob = searchForm["dobSearch"]
+    #uniqueId = searchForm["uniqueId"]
+    
+    uniqueId = patientFirstName + patientLastName + dob
+
+    myList = []
+
+    sql = "SELECT CAST(details as TEXT) FROM [Pedsoncall].[dbo].[patientDetails] WHERE uniqueId = '%s'"%(uniqueId)
+    result = db.engine.execute(sql) 
+
+    for row in result:
+        print(row[0],flush=True)
+        myList.append(json.loads(row[0]))
+
+    
+    return { "result" : myList }
+
+
+@app.route('/searchPatientNew',methods = ['POST'])
+def searchPatientNew():
+    searchForm = request.get_json(force=True)
+    uniqueId = searchForm["uniqueId"]
+    sql = "SELECT [details] FROM [Pedsoncall].[dbo].[patientDetails] WHERE uniqueId = '%s'"%(uniqueId)
+    result = db.engine.execute(sql)
+    print(result)
+    print(type(result),flush=True)
+
+
+    myDict = {}
+    for row in result:
+        myDict["personalDetails"]["patientFirstName"] = row[0][0]
+    print(myDict,flush=True)
+    #searchResult = json.loads(result)
+    #print(searchResult,flush=True)
+    return "Search Success!"
+
+
+
 #______________________________________________________________ query routes end _______________________________________________________________________________#
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port="80",debug=True)
     #app.run(debug=True)
+
+
+
+    '''
+{"personalDetails": {"patientFirstName": "David", "patientLastName": "Warner", "callerName": "Mike Tyson", "providerName": "user", "dob": "07/08/2020", "phoneNumber": "1234567890", "startTime": "13/08/2020, 11:22:00", "endTime": null, "pcp": "BRIAN GREENBERG"}, "medicalDetails": {"allergies": "N/A", "meds": "N/A", "pmh": "N/A", "fh": "N/A", "sh": "N/A", "cc": "N/A", "hpi": "N/A", "ros": "N/A", "exam": "N/A", "diagnosis": "N/A", "plan": "N/A", "coding": "N/A"}, "callDetails": {"startTime": null, "endTime": null}}
+    '''
+
+
+
+'''
+{<>personalDetails<>: {<>patientFirstName<>: <>abc2<>, <>patientLastName<>: <>xyz<>, <>callerName<>: <>dw<>, <>providerName<>: <>user<>, <>dob<>: <>01/01/00<>, <>phoneNumber<>: <>asa<>, <>startTime<>: <>13/08/2020, 12:46:12<>, <>endTime<>: None, <>pcp<>: <>FRANK XU<>}, <>medicalDetails<>: {<>allergies<>: <>cvs<>, <>meds<>: <>and<>, <>pmh<>: <>div<>, <>fh<>: <>fav<>, <>sh<>: <>fds\n\n<>, <>cc<>: <>fav<>, <>hpi<>: <>vs<>, <>ros<>: <>df<>, <>exam<>: <>fvs<>, <>diagnosis<>: <>dvs<>, <>plan<>: <>dvs<>, <>coding<>: <>dsvsd<>}, <>callDetails<>: {<>startTime<>: None, <>endTime<>: None}}
+
+{<>personalDetails<>: {<>patientFirstName<>: <>abc2<>, <>patientLastName<>: <>xyz<>, <>callerName<>: <>dw<>, <>providerName<>: <>user<>, <>dob<>: <>01/01/00<>, <>phoneNumber<>: <>asa<>, <>startTime<>: <>13/08/2020, 12:46:12<>, <>endTime<>: None, <>pcp<>: <>FRANK XU<>}, <>medicalDetails<>: {<>allergies<>: <>cvs<>, <>meds<>: <>and<>, <>pmh<>: <>div<>, <>fh<>: <>fav<>, <>sh<>: <>fds\n\n<>, <>cc<>: <>fav<>, <>hpi<>: <>vs<>, <>ros<>: <>df<>, <>exam<>: <>fvs<>, <>diagnosis<>: <>dvs<>, <>plan<>: <>dvs<>, <>coding<>: <>dsvsd<>}, <>callDetails<>: {<>startTime<>: None, <>endTime<>: None}}
+'''
