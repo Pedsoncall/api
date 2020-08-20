@@ -34,7 +34,7 @@ CORS(app)
 #params = urllib.parse.quote_plus("DRIVER={FreeTDS};SERVER=myrds.caa8mx0j14uc.us-east-2.rds.amazonaws.com;PORT=1433;UID=admin;PWD=admin123!;DATABASE=devdb")
 #app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc:///?odbc_connect=%s" % params
 
-params = urllib.parse.quote_plus("DRIVER={FreeTDS};SERVER=petsoncall.cp42nrzgcaom.us-west-1.rds.amazonaws.com;PORT=1433;UID=Sudarshan;PWD=Sudarshan;DATABASE=Pedsoncall")
+params = urllib.parse.quote_plus("DRIVER={FreeTDS};SERVER=pedsoncall.cp42nrzgcaom.us-west-1.rds.amazonaws.com;PORT=1433;UID=Sudarshan;PWD=Sudarshan;DATABASE=Pedsoncall")
 app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc:///?odbc_connect=%s" % params
 
 app.config.update(
@@ -95,6 +95,10 @@ class patientDetails(db.Model):
     uniqueId = db.Column(db.String(200),nullable=False)
     patientFirstName = db.Column(db.String(100),nullable = False)
     patientLastName = db.Column(db.String(100),nullable=False)
+    dob = db.Column(db.String(50))
+    clientName = db.Column(db.String(100))
+    pcpName = db.Column(db.String(100))
+    callerNumber = db.Column(db.String(15))
     details=db.Column(db.String(80000),nullable=False)
 
     def setUniqueId(self,DOB):
@@ -337,9 +341,10 @@ def getClients():
     #conn = pyodbc.connect('DRIVER={FreeTDS};SERVER=petsoncall.cp42nrzgcaom.us-west-1.rds.amazonaws.com;PORT=1433;UID=Sudarshan;PWD=Sudarshan;DATABASE=Pedsoncall;'
     #                'Trusted_Connection=yes;')
     #cursor = conn.cursor()
+    clientName = request.args.get("clientName")
     print("bef que")
     listOfClients = []
-    sql = 'SELECT PROVIDER_PCP_NAME FROM Client_Profile'
+    sql = "SELECT PROVIDER_PCP_NAME FROM POC_ClientProfile WHERE CLIENT_NAME = '%s'"%(clientName)
 
     result = db.engine.execute(sql)
     print('aft que')
@@ -353,11 +358,22 @@ def getClients():
     #return jsonify(result)
 
 
+@app.route('/getClientName',methods = ["GET"])
+def getClientName():
+    listOfClientName = []
+    sql = 'SELECT DISTINCT CLIENT_NAME FROM POC_ClientProfile'
+    result = db.engine.execute(sql)
+    for row in result:
+        print(row)
+        listOfClientName.append(row[0])
+    return {"ClientName":listOfClientName}
+
+
 @app.route('/diagCode',methods = ["GET"])
 def diagCode():
 
     diagCode = []
-    sql = 'SELECT [codeid],[description],[codegroup] FROM [Pedsoncall].[dbo].[DiagCode]'
+    sql = 'SELECT [codeid],[description],[codegroup] FROM [Pedsoncall].[dbo].[POC_DiagCode]'
     result = db.engine.execute(sql)
     print('aft que',flush=True)
     #print(result)
@@ -403,8 +419,9 @@ def registerPatient():
     patientFirstName = formData["personalDetails"]["patientFirstName"]
     patientLastName = formData["personalDetails"]["patientLastName"]
     dob = formData["personalDetails"]["dob"]
-
-    
+    clientName = formData["personalDetails"]["client"]
+    pcpName = formData["personalDetails"]["pcp"]
+    callerNumber = formData["personalDetails"]["callerNumber"]
     details = json.dumps(formData)
 
     print(details,flush=True)
@@ -414,7 +431,7 @@ def registerPatient():
    
     uniqueId = patientFirstName+patientLastName+dob
     
-    sql = "INSERT INTO patientDetails(uniqueId,patientFirstName,patientLastName,details) VALUES ('%s','%s','%s','%s');"%(uniqueId,patientFirstName,patientLastName,details)
+    sql = "INSERT INTO patientDetails(uniqueId,patientFirstName,patientLastName,dob,clientName,pcpName,callerNumber,details) VALUES ('%s','%s','%s','%s','%s','%s','%s','%s');"%(uniqueId,patientFirstName,patientLastName,dob,clientName,pcpName,callerNumber,details)
     result = db.engine.execute(sql) 
     db.session.commit()
     return details
@@ -425,17 +442,40 @@ def registerPatient():
 def searchPatient():
   
     searchForm = request.get_json(force=True)
-    patientFirstName = searchForm["patientFirstName"]
-    patientLastName = searchForm["patientLastName"]
-    dob = searchForm["dobSearch"]
+    #print(searchForm,flush=True)
+    #patientFirstName = searchForm["patientFirstName"]
+    #print(patientFirstName,flush=True)
+    #patientLastName = searchForm["patientLastName"]
+    #print(patientLastName,flush=True)
+    #dob = searchForm["dobSearch"]
     #uniqueId = searchForm["uniqueId"]
-    
-    uniqueId = patientFirstName + patientLastName + dob
+    #clientName = searchForm["client"]
+    #pcpName = searchForm["pcp"]
+    #callerNumber = searchForm["callerNumber"]
+    flag = 0
+    dynamicQuery = "SELECT CAST(details as TEXT) FROM [Pedsoncall].[dbo].[patientDetails] WHERE "
+    for x in searchForm:
+        if(searchForm[x]!=''):
+            if(flag==0):
+                if(x=='patientFirstName' or x=='patientLastName'):
+                    dynamicQuery = dynamicQuery + x + ' LIKE ' + "'"+searchForm[x]+"%'"
+                else:
+                    dynamicQuery = dynamicQuery + x + ' = ' + "'"+searchForm[x]+"'" 
+                flag = 1
+            else:
+                if(x=='patientFirstName' or x=='patientLastName'):
+                    dynamicQuery = dynamicQuery + ' AND ' + x + ' LIKE ' + "'"+searchForm[x]+"%'"
+                else:
+                    dynamicQuery = dynamicQuery + ' AND ' + x + ' = ' + "'"+searchForm[x]+"'"
+
+
+    print(dynamicQuery,flush=True)
+    #uniqueId = patientFirstName + patientLastName + dob
 
     myList = []
 
-    sql = "SELECT CAST(details as TEXT) FROM [Pedsoncall].[dbo].[patientDetails] WHERE uniqueId = '%s'"%(uniqueId)
-    result = db.engine.execute(sql) 
+    #sql = "SELECT CAST(details as TEXT) FROM [Pedsoncall].[dbo].[patientDetails] WHERE uniqueId = '%s'"%(uniqueId)
+    result = db.engine.execute(dynamicQuery) 
 
     for row in result:
         print(row[0],flush=True)
@@ -483,4 +523,6 @@ if __name__ == '__main__':
 hey
 {<>personalDetails<>: {<>patientFirstName<>: <>abc2<>, <>patientLastName<>: <>xyz<>, <>callerName<>: <>dw<>, <>providerName<>: <>user<>, <>dob<>: <>01/01/00<>, <>phoneNumber<>: <>asa<>, <>startTime<>: <>13/08/2020, 12:46:12<>, <>endTime<>: None, <>pcp<>: <>FRANK XU<>}, <>medicalDetails<>: {<>allergies<>: <>cvs<>, <>meds<>: <>and<>, <>pmh<>: <>div<>, <>fh<>: <>fav<>, <>sh<>: <>fds\n\n<>, <>cc<>: <>fav<>, <>hpi<>: <>vs<>, <>ros<>: <>df<>, <>exam<>: <>fvs<>, <>diagnosis<>: <>dvs<>, <>plan<>: <>dvs<>, <>coding<>: <>dsvsd<>}, <>callDetails<>: {<>startTime<>: None, <>endTime<>: None}}
 '''
-''' hey'''
+''' hey
+{"personalDetails": {"consultationStartTime": "8/19/2020 06:56 PM", "consultationEndTime": "", "callerName": "s", "callerNumber": "s", "patientFirstName": "s", "patientLastName": "s", "providerName": "s", "dob": "s", "client": "HB PEDIATRICS", "pcp": "TAMMY LIU"}, "medicalDetails": {"allergies": ".", "meds": ".", "pmh": ".", "fh": ".", "sh": ".", "cc": ".", "hpi": ".", "ros": ".", "exam": ".", "plan": ".", "search": [], "coding": "."}}
+'''
