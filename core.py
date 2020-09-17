@@ -387,6 +387,17 @@ def diagCode():
     
     return {"diagCode":diagCode}
 
+@app.route('/cptCode',methods = ["GET"])
+def cptCode():
+    cptCode = []
+    sql = 'SELECT codeid,description FROM [Pedsoncall].[dbo].[POC_CptCode]'
+    result = db.engine.execute(sql)
+    for row in result:
+        temp ={}
+        temp['codeid'] = row[0] + ' - ' + row[1]
+        cptCode.append(temp)
+    return {"cptCode":cptCode}
+
 #______________________________________________________________ test routes end _______________________________________________________________________________#
 
 
