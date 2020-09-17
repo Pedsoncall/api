@@ -361,11 +361,11 @@ def getClients():
 @app.route('/getClientName',methods = ["GET"])
 def getClientName():
     listOfClientName = []
-    sql = 'SELECT CLIENT_NAME,PROVIDER_PCP_NAME FROM POC_ClientProfile'
+    sql = 'SELECT CLIENT_NAME,PROVIDER_PCP_NAME,CLIENT_CITY FROM POC_ClientProfile'
     result = db.engine.execute(sql)
     for row in result:
         print(row)
-        listOfClientName.append(row[0] +  ' - ' + row[1])
+        listOfClientName.append(row[0] +  ' - ' + row[1] + ' ' + row[2])
     return {"ClientName":listOfClientName}
 
 
