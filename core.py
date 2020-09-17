@@ -394,7 +394,8 @@ def cptCode():
     result = db.engine.execute(sql)
     for row in result:
         temp ={}
-        temp['codeid'] = row[0] + ' - ' + row[1]
+        temp['codeid'] = row[0]
+        temp['description']=row[1]
         cptCode.append(temp)
     return {"cptCode":cptCode}
 
